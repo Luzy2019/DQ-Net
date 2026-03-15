@@ -49,7 +49,7 @@ pip install numpy pydelatin tqdm imageio-ffmpeg opencv-python wandb scipy termco
 
 # 🛠️ Usage
 ### Low-level training
-This part you can totally refer to [VBC's Low-level introduction](https://github.com/Ericonaldo/visual_wholebody/tree/main/low-level)
+This part you can totally refer to [VBC's Low-level introduction](https://github.com/Ericonaldo/visual_wholebody/tree/main/low-level), we have provided our low-level model in our github repo: [low-level model of the entity B1Z1](https://github.com/YoungYNG/DQ_WBC/tree/main/DQ_high-level/data/low_model)
 
 **Note**:We made changes to the **low-level** part of the VBC work mainly by **expanding the value ranges** of `delta_orn_r`, `delta_orn_p`, and `delta_orn_y` in `low-level/legged_gym/envs/manip_loco/b1z1_config.py`
 
