@@ -317,6 +317,24 @@ def quat_from_euler_xyz(roll, pitch, yaw):
 
     return torch.stack([qx, qy, qz, qw], dim=-1)
 
+@torch.jit.script
+def sphere2cart(sphere_coords):
+    # type: (Tensor) -> Tensor
+    """ Convert spherical coordinates to cartesian coordinates
+    Args:
+        sphere_coords (torch.Tensor): Spherical coordinates (l, pitch, yaw)
+    Returns:
+        cart_coords (torch.Tensor): Cartesian coordinates (x, y, z)
+    """
+    l = sphere_coords[:, 0]
+    pitch = sphere_coords[:, 1]
+    yaw = sphere_coords[:, 2]
+    cart_coords = torch.zeros_like(sphere_coords)
+    cart_coords[:, 0] = l * torch.cos(pitch) * torch.cos(yaw)
+    cart_coords[:, 1] = l * torch.cos(pitch) * torch.sin(yaw)
+    cart_coords[:, 2] = l * torch.sin(pitch)
+    return cart_coords
+
 def quaternion_tensor_to_euler(quaternions):
     """
     Convert a tensor of quaternions (w, x, y, z) to Euler angles (roll, pitch, yaw).
