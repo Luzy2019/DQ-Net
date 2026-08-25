@@ -526,7 +526,9 @@ class B1Z1Base(RewardVecTask):
     
     def create_sim(self):
         self.up_axis_idx = 2 # Y=1, Z=2;
-        self.sim = super().create_sim(self.sim_id, self.sim_id, self.physics_engine, self.sim_params)
+        # Headless: use -1 for the graphics device (fixes segfault on single-GPU headless boxes).
+        gfx_device = -1 if self.headless else self.sim_id
+        self.sim = super().create_sim(self.sim_id, gfx_device, self.physics_engine, self.sim_params)
         #### create the terrain in high-level ####
         self.terrain = Terrain(self.cfg_terrain.terrain, )
         self._create_trimesh()

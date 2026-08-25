@@ -22,13 +22,18 @@ from utils.config import load_cfg, get_params, copy_cfg
 import utils.wrapper as wrapper
 import time
 from legged_gym.envs.manip_loco.b1z1_config import B1Z1RoughCfg
+from legged_gym.envs.manip_loco.b2z1_config import B2Z1RoughCfg
 from modules.predictattention import PredictAttentionSelector
 
 
 set_seed(43)
 
 def create_env(cfg, args, camera_6p_tensor, grasp_cv_tensor, cube_init_tensor ):
-    cfg_terrain = B1Z1RoughCfg()
+    # For b2z1 tasks use the B2-Z1 terrain config
+    if args.task.startswith("b2z1") or args.task.startswith("B2Z1"):
+        cfg_terrain = B2Z1RoughCfg()
+    else:
+        cfg_terrain = B1Z1RoughCfg()
 
     cfg["env"]["enableDebugVis"] = args.debugvis
     cfg["env"]["cameraMode"] = "full"
@@ -219,7 +224,12 @@ def get_trainer(is_eval=False):
     args = get_params()
     args.eval = is_eval
     args.wandb = args.wandb and (not args.eval) and (not args.debug)
-    cfg_file = "DQ_teacher.yaml"    
+    # For b2z1 tasks (e.g. --task B2Z1PickMulti) use the b2z1 config (b2_z1 robot + b2z1 low-level model)
+    if args.task.startswith("b2z1") or args.task.startswith("B2Z1"):
+        cfg_file = "DQ_teacher_b2z1.yaml"
+        cprint("Using B2-Z1 teacher config (DQ_teacher_b2z1.yaml)", "red")
+    else:
+        cfg_file = "DQ_teacher.yaml"
     # cfg_file = "b1z1_" + args.task[4:].lower() + ".yaml"
     file_path = "data/cfg/" + cfg_file
     
@@ -277,7 +287,7 @@ def get_trainer(is_eval=False):
     cprint(f"env_num is {env_num}", "yellow")
     env = create_env(cfg=cfg, args=args, camera_6p_tensor=camera_6p_tensor, grasp_cv_tensor=grasp_cv_tensor, cube_init_tensor=cube_init_tensor)
     device = env.rl_device
-    memory = RandomMemory(memory_size=24, num_envs=env.num_envs, device=device)
+    memory = RandomMemory(memory_size=64, num_envs=env.num_envs, device=device)  # 从24提升到64 (折中), 加长rollout让critic看到更长horizon
     
     num_features = 0 if args.no_feature else 1024
     encode_dim = 0 if args.no_feature else 128
@@ -286,12 +296,12 @@ def get_trainer(is_eval=False):
     models_ppo["value"] = Value(env.observation_space, env.action_space, device, num_features, encode_dim, camera_6p_tensor, grasp_cv_tensor, cube_init_tensor)
     
     cfg_ppo = PPO_DEFAULT_CONFIG.copy()
-    cfg_ppo["rollouts"] = 24  # memory_size
+    cfg_ppo["rollouts"] = 64  # 24->64: 加长rollout让critic看到更长horizon
     cfg_ppo["learning_epochs"] = 5
-    cfg_ppo["mini_batches"] = 6  # 24 * 8192 / 32768
+    cfg_ppo["mini_batches"] = 8  # 6->8: 64*5000/8=40000样本/batch,保持合理batch
     cfg_ppo["discount_factor"] = 0.99
     cfg_ppo["lambda"] = 0.95
-    cfg_ppo["learning_rate"] = 4.2e-4 ## my change ##
+    cfg_ppo["learning_rate"] = 3.0e-4  # 4.2e-4->3e-4: 降低更新幅度,缓解KLAdaptive过度压lr
     cfg_ppo["learning_rate_scheduler"] = KLAdaptiveRL
     cfg_ppo["learning_rate_scheduler_kwargs"] = {"kl_threshold": 0.008}
     cfg_ppo["random_timesteps"] = 0

@@ -131,10 +131,14 @@ class Policy(DeterministicMixin, Model):
         return actions, residual_actions, {}
  
 def create_env(cfg, args, mode, camera_6p_tensor, grasp_cv_tensor, cube_init_tensor ,intervel):
-    from envs import B1Z1PickMulti, B1Z1Float
+    from envs import B1Z1PickMulti, B1Z1Float, B2Z1PickMulti, B2Z1Float
     import utils.wrapper as wrapper
     from legged_gym.envs.manip_loco.b1z1_config import B1Z1RoughCfg
-    cfg_terrain = B1Z1RoughCfg()
+    from legged_gym.envs.manip_loco.b2z1_config import B2Z1RoughCfg
+    if args.task.startswith("b2z1") or args.task.startswith("B2Z1"):
+        cfg_terrain = B2Z1RoughCfg()
+    else:
+        cfg_terrain = B1Z1RoughCfg()
 
 
     cfg["sensor"]["enableCamera"] = True
@@ -245,7 +249,11 @@ def get_trainer(is_eval=False):
     # assert use_roboinfo, "Are you sure not using roboinfo?" # TODO: temporarily for reminder
     args.wandb = args.wandb and (not args.eval) and (not args.debug)
     
-    cfg_file = "DQ_stu.yaml"
+    if args.task.startswith("b2z1") or args.task.startswith("B2Z1"):
+        cfg_file = "DQ_stu_b2z1.yaml"
+        cprint("Using B2-Z1 student config (DQ_stu_b2z1.yaml)", "red")
+    else:
+        cfg_file = "DQ_stu.yaml"
     file_path = "data/cfg/" + cfg_file
     
     if args.resume:
