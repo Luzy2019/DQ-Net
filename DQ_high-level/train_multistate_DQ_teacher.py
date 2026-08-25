@@ -303,7 +303,7 @@ def get_trainer(is_eval=False):
     cprint(f"env_num is {env_num}", "yellow")
     env = create_env(cfg=cfg, args=args, camera_6p_tensor=camera_6p_tensor, grasp_cv_tensor=grasp_cv_tensor, cube_init_tensor=cube_init_tensor)
     device = env.rl_device
-    memory = RandomMemory(memory_size=64, num_envs=env.num_envs, device=device)  # 从24提升到64 (折中), 加长rollout让critic看到更长horizon
+    memory = RandomMemory(memory_size=32, num_envs=env.num_envs, device=device)  # 必须与 cfg_ppo["rollouts"] 一致(=32), 否则 sample_all 会采到未写入的 NaN 行导致 PPO update 崩溃
     
     num_features = 0 if args.no_feature else 1024
     encode_dim = 0 if args.no_feature else 128
