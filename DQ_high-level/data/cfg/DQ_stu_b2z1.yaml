@@ -18,7 +18,10 @@ env:
   holdSteps: 25
   lastCommands: False
 
-  low_policy_path: "/root/rivermind-data/DQ_WBC/DQ_high-level/data/low_model/b2z1/model_14500.pt" 
+  low_policy_path: "/home/lzy/code/DQ-Net/DQ_high-level/data/low_model/b2z1/model_14500.pt" 
+  # model_14500.pt: visual_wholebody B2Z1ReachableWorkspaceCfgPPO
+  low_policy_output_tanh: true
+  low_policy_observe_gait_commands: true
   taskddescription: "023"
 
   asset:
@@ -262,4 +265,3 @@ sensor:
     resolution: [2,3] 
     position: [0.0, -0.30, 0.80]
     rotation: [0.0, 0.70, 1.57]
-

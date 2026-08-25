@@ -42,6 +42,14 @@ def create_env(cfg, args, camera_6p_tensor, grasp_cv_tensor, cube_init_tensor ):
         cfg["env"]["lastCommands"] = True
     if args.record_video:
         cfg["record_video"] = True
+        # 录视频需要真实渲染上下文（camera sensor 依赖 graphics device）：
+        # VecTask 在 headless 且未开 enableCameraSensors 时会把 graphics_device_id 置为 -1，
+        # 导致 create_camera_sensor 返回 handle -1，render_record 报
+        # "could not find camera with handle -1"。
+        # 因此：开启 enableCameraSensors（保住渲染上下文）+ 强制 graphics device 0（headless 不弹窗）。
+        cfg["enableCameraSensors"] = True
+        if args.graphics_device_id < 0:
+            args.graphics_device_id = 0
     if args.control_freq is not None:
         cfg["env"]["controlFrequencyLow"] = int(args.control_freq)
     robot_start_pose = (-2.00, 0, 0.55)
@@ -49,9 +57,10 @@ def create_env(cfg, args, camera_6p_tensor, grasp_cv_tensor, cube_init_tensor ):
         robot_start_pose = (-0.85, 0, 0.55)
     # _env is actually an instance of an environment class, the name of which is determined by args.task.
     # _env is the entity of the B1Z1Pickmulti 
+    observe_gait_commands = args.observe_gait_commands or cfg["env"].get("low_policy_observe_gait_commands", False)
     _env = eval(args.task)(cfg=cfg, rl_device=args.rl_device, sim_device=args.sim_device, 
                          graphics_device_id=args.graphics_device_id, headless=args.headless, 
-                         use_roboinfo=args.roboinfo, observe_gait_commands=args.observe_gait_commands, no_feature=args.no_feature, mask_arm=args.mask_arm, pitch_control=args.pitch_control,
+                         use_roboinfo=args.roboinfo, observe_gait_commands=observe_gait_commands, no_feature=args.no_feature, mask_arm=args.mask_arm, pitch_control=args.pitch_control,
                          rand_control=args.rand_control, arm_delay=args.arm_delay, robot_start_pose=robot_start_pose,
                          rand_cmd_scale=args.rand_cmd_scale, rand_depth_clip=args.rand_depth_clip, stop_pick=args.stop_pick, table_height=args.table_height, eval=args.eval,
                          camera_6p_tensor=camera_6p_tensor, grasp_cv_tensor=grasp_cv_tensor, cube_init_tensor=cube_init_tensor, cfg_terrain = cfg_terrain)
@@ -261,8 +270,10 @@ def get_trainer(is_eval=False):
         cfg['env']['numEnvs'] = 34
         
     if args.eval:
-        cfg['env']['numEnvs'] = 800 # 34
-        cfg["env"]["maxEpisodeLength"] = 100
+        # record_video 会为每个 env 创建一块 720x480 渲染相机，800 env 直接撑爆显存导致段错误；
+        # 录视频时用 30 的倍数（30 个物体一组，统计成功率需要），不录时保持 800
+        cfg['env']['numEnvs'] = 30 if args.record_video else 800 # 34
+        cfg["env"]["maxEpisodeLength"] = 240
         if args.checkpoint:
             checkpoint_steps = int(args.checkpoint.split("_")[-1].split(".")[0])
             cfg["env"]["globalStepCounter"] = checkpoint_steps

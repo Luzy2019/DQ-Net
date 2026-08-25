@@ -533,7 +533,13 @@ class B2Z1Base(RewardVecTask):
         self.up_axis_idx = 2 # Y=1, Z=2;
         # Headless: use -1 for the graphics device to avoid opening a display
         # (on this single-GPU box, create_sim(0,0) segfaults when headless).
-        gfx_device = -1 if self.headless else self.sim_id
+        # 录视频（record_video）时必须保留真实渲染上下文：
+        # 若用 -1 创建 sim，create_camera_sensor 会返回 handle -1，
+        # render_record 会报 "could not find camera with handle -1"。
+        if self.cfg.get("record_video", False):
+            gfx_device = self.sim_id
+        else:
+            gfx_device = -1 if self.headless else self.sim_id
         self.sim = super().create_sim(self.sim_id, gfx_device, self.physics_engine, self.sim_params)
         #### create the terrain in high-level ####
         self.terrain = Terrain(self.cfg_terrain.terrain, )
@@ -952,7 +958,10 @@ class B2Z1Base(RewardVecTask):
             "actor_hidden_dims": [128],
             "critic_hidden_dims": [128],
             "activation": 'elu', # can be elu, relu, selu, crelu, lrelu, tanh, sigmoid
-            "output_tanh": False,
+            # model_14500.pt was trained by visual_wholebody's
+            # B2Z1ReachableWorkspaceCfgPPO, whose bounded-action policy has
+            # Tanh heads. Keep this configurable for older checkpoints.
+            "output_tanh": bool(self.cfg["env"].get("low_policy_output_tanh", False)),
             "leg_control_head_hidden_dims": [128, 128],
             "arm_control_head_hidden_dims": [128, 128],
             "priv_encoder_dims": [64, 20],
@@ -980,7 +989,10 @@ class B2Z1Base(RewardVecTask):
         low_actor_critic.load_state_dict(loaded_dict["model_state_dict"])
         low_actor_critic = low_actor_critic.to(self.device)
         low_actor_critic.eval()
-        print("Low level pretrained policy loaded!")
+        print(
+            f"Low level pretrained policy loaded (output_tanh={low_level_kwargs['output_tanh']}, "
+            f"observe_gait_commands={self.observe_gait_commands})!"
+        )
         if not stochastic:
             return low_actor_critic.act_inference
         else:

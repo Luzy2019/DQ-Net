@@ -153,9 +153,10 @@ def create_env(cfg, args, mode, camera_6p_tensor, grasp_cv_tensor, cube_init_ten
     robot_start_pose = (-2.00, 0, 0.55)
     if args.eval:
         robot_start_pose = (-1.5, 0, 0.55)
+    observe_gait_commands = args.observe_gait_commands or cfg["env"].get("low_policy_observe_gait_commands", False)
     _env = eval(args.task)(cfg=cfg, rl_device=args.rl_device, sim_device=args.sim_device, 
                          graphics_device_id=args.graphics_device_id, headless=args.headless, 
-                         use_roboinfo=args.roboinfo, observe_gait_commands=args.observe_gait_commands, robot_start_pose=robot_start_pose,
+                         use_roboinfo=args.roboinfo, observe_gait_commands=observe_gait_commands, robot_start_pose=robot_start_pose,
                          no_feature=args.no_feature, mask_arm=args.mask_arm, depth_random=args.depth_random, stu_distill=True, pitch_control=args.pitch_control, pred_success=args.pred_success,
                          rand_control=args.rand_control, arm_delay=args.arm_delay, rand_cmd_scale=args.rand_cmd_scale, rand_depth_clip=args.rand_depth_clip, stop_pick=args.stop_pick, arm_kp=args.arm_kp, arm_kd=args.arm_kd, table_height=args.table_height, eval=args.eval,
                          camera_6p_tensor=camera_6p_tensor, grasp_cv_tensor=grasp_cv_tensor, cube_init_tensor=cube_init_tensor, intervel=intervel,  cfg_terrain = cfg_terrain)
