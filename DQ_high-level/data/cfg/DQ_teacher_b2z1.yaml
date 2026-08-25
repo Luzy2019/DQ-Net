@@ -1,5 +1,5 @@
 env:
-  numEnvs: 5000 
+  numEnvs: 3600 
   numAgents: 1
   envSpacing: 3
   enableDebugVis: False
@@ -18,7 +18,7 @@ env:
   holdSteps: 25
   lastCommands: False
 
-  low_policy_path: "/home/lzy/code/DQ-Net/DQ_high-level/data/low_model/b2z1/model_14500.pt" 
+  low_policy_path: "/root/rivermind-fs/DQ_WBC/DQ_high-level/data/low_model/b2z1/model_14500.pt" 
   # model_14500.pt: visual_wholebody B2Z1ReachableWorkspaceCfgPPO
   low_policy_output_tanh: true
   low_policy_observe_gait_commands: true

@@ -74,6 +74,11 @@ class Trainer:
                 logger.info("Environment closed")
             
         self.record_video = cfg.get("record_video", False)
+        # DQ: 只录制指定 env 的视频 (默认空=录全部; 给 env 索引列表则只录这些)
+        self.video_env_ids = cfg.get("video_env_ids", [])
+        # 归一化: 允许 int 或 list
+        if isinstance(self.video_env_ids, int):
+            self.video_env_ids = [self.video_env_ids]
 
     def __str__(self) -> str:
         """Generate a string representation of the trainer
@@ -220,19 +225,20 @@ class Trainer:
         # reset env
         states, infos = self.env.reset()
         
-        mp4_writers = []
+        mp4_writers = {}
         if self.record_video:
             import imageio, os
             self.env.enable_viewer_sync = False
-            for i in range(self.env.num_envs):
+            # DQ: 决定录哪些 env (video_env_ids 为空 => 全部)
+            record_ids = list(range(self.env.num_envs)) if not self.video_env_ids else self.video_env_ids
+            for i in record_ids:
                 video_name = f"{i}.mp4"
                 run_dir = self.cfg["log_dir"]
                 path = f"../logs/videos/{run_dir}/{self.cfg['video_name']}"
                 if not os.path.exists(path):
                     os.makedirs(path)
                 video_name = os.path.join(path, video_name)
-                mp4_writer = imageio.get_writer(video_name, fps=10)
-                mp4_writers.append(mp4_writer)
+                mp4_writers[i] = imageio.get_writer(video_name, fps=10)
 
         if not self.record_video:
             traj_length = 50000 # 35000 # min(int(self.env.max_episode_length), 300)
@@ -255,8 +261,10 @@ class Trainer:
                 if self.record_video:
                     imgs = self.env.render_record(mode='rgb_array')
                     if imgs is not None:
-                        for i in range(self.env.num_envs):
-                            mp4_writers[i].append_data(imgs[i])
+                        # DQ: imgs 是 {env_id: frame}; 逐 writer 写入
+                        for i, frame in imgs.items():
+                            if i in mp4_writers:
+                                mp4_writers[i].append_data(frame)
 
                 # write data to TensorBoard
                 self.agents.record_transition(states=states,
@@ -278,7 +286,7 @@ class Trainer:
                 states = next_states
                 
         if self.record_video:
-            for mp4_writer in mp4_writers:
+            for mp4_writer in mp4_writers.values():
                 mp4_writer.close()
 
     def multi_agent_train(self) -> None:

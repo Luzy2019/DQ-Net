@@ -270,9 +270,14 @@ def get_trainer(is_eval=False):
         cfg['env']['numEnvs'] = 34
         
     if args.eval:
-        # record_video 会为每个 env 创建一块 720x480 渲染相机，800 env 直接撑爆显存导致段错误；
-        # 录视频时用 30 的倍数（30 个物体一组，统计成功率需要），不录时保持 800
-        cfg['env']['numEnvs'] = 30 if args.record_video else 800 # 34
+        # DQ: record_video 时只创建 30 个 env (覆盖全部30种物体, 含 bowl=env0, clear_box=env28),
+        #     并只录制指定 env 的视频; 否则评估用 800 env.
+        # 注: 每个 env 一块 720x480 渲染相机, 800 env 会撑爆显存导致段错误, 故录视频用 30.
+        if args.record_video:
+            cfg['env']['numEnvs'] = 30
+            cfg['video_env_ids'] = [0, 28]  # bowl(0) 和 clear_box(28)
+        else:
+            cfg['env']['numEnvs'] = 800  # 34
         cfg["env"]["maxEpisodeLength"] = 240
         if args.checkpoint:
             checkpoint_steps = int(args.checkpoint.split("_")[-1].split(".")[0])
@@ -307,9 +312,9 @@ def get_trainer(is_eval=False):
     models_ppo["value"] = Value(env.observation_space, env.action_space, device, num_features, encode_dim, camera_6p_tensor, grasp_cv_tensor, cube_init_tensor)
     
     cfg_ppo = PPO_DEFAULT_CONFIG.copy()
-    cfg_ppo["rollouts"] = 64  # 24->64: 加长rollout让critic看到更长horizon
+    cfg_ppo["rollouts"] = 32  # 24->64: 加长rollout让critic看到更长horizon
     cfg_ppo["learning_epochs"] = 5
-    cfg_ppo["mini_batches"] = 8  # 6->8: 64*5000/8=40000样本/batch,保持合理batch
+    cfg_ppo["mini_batches"] = 6  # 6->8: 64*5000/8=40000样本/batch,保持合理batch
     cfg_ppo["discount_factor"] = 0.99
     cfg_ppo["lambda"] = 0.95
     cfg_ppo["learning_rate"] = 3.0e-4  # 4.2e-4->3e-4: 降低更新幅度,缓解KLAdaptive过度压lr
@@ -328,9 +333,9 @@ def get_trainer(is_eval=False):
     cfg_ppo["state_preprocessor_kwargs"] = {"size": env.observation_space, "device": device}
     cfg_ppo["value_preprocessor"] = RunningStandardScaler
     cfg_ppo["value_preprocessor_kwargs"] = {"size": 1, "device": device}
-    # logging to TensorBoard and write checkpoints each 120 and 1200 timesteps respectively
+    # logging to TensorBoard and write checkpoints each 24 and 2000 timesteps respectively
     cfg_ppo["experiment"]["write_interval"] = 24
-    cfg_ppo["experiment"]["checkpoint_interval"] = 5000 ## my change
+    cfg_ppo["experiment"]["checkpoint_interval"] = 2000 ## 5000->2000, 更频繁保存防中断丢失进度
     cfg_ppo["experiment"]["directory"] = args.experiment_dir
     cfg_ppo["experiment"]["experiment_name"] = args.wandb_name
     cfg_ppo["experiment"]["wandb"] = args.wandb
@@ -351,11 +356,15 @@ def get_trainer(is_eval=False):
         agent.load(args.checkpoint)
         checkpoint_steps = int(args.checkpoint.split("_")[-1].split(".")[0])
         if args.record_video:
-            experiment_dir = args.checkpoint.split("/")[0]
-            wandb_name = args.checkpoint.split("/")[1]
-            cfg_trainer["video_name"] = wandb_name +"-"+str(checkpoint_steps)
+            # DQ: 修复 - 从 checkpoint 路径提取正确的 run 名 (…/experiment_dir/wandb_name/checkpoints/xxx.pt)
+            ckpt_dir = os.path.dirname(args.checkpoint)                 # …/checkpoints
+            exp_full = os.path.dirname(ckpt_dir)                        # …/experiment_dir/wandb_name
+            experiment_dir, wandb_name = os.path.split(exp_full)        # 拆出 experiment_dir 和 wandb_name
+            cfg_trainer["video_name"] = wandb_name + "-" + str(checkpoint_steps)
             cfg_trainer["log_dir"] = experiment_dir
             cfg_trainer["record_video"] = True
+            if hasattr(env, "_env") and hasattr(env._env, "video_env_ids"):
+                cfg_trainer["video_env_ids"] = env._env.video_env_ids
         if not args.eval:
             cfg_trainer["initial_timestep"] = checkpoint_steps
             agent.set_running_mode("eval")

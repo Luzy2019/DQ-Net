@@ -57,6 +57,10 @@ class B2Z1Base(RewardVecTask):
                 ):
         self.cfg = cfg
         self._headless = headless
+        # DQ: 视频录制目标 env (来自 cfg; 空=全部)
+        self.video_env_ids = self.cfg.get("video_env_ids", [])
+        if isinstance(self.video_env_ids, int):
+            self.video_env_ids = [self.video_env_ids]
         self.floating_base = self.cfg["env"].get("floatingBase", False)
         self.use_roboinfo = use_roboinfo
         self.observe_gait_commands = observe_gait_commands and (not self.floating_base)
@@ -186,8 +190,10 @@ class B2Z1Base(RewardVecTask):
     def render_record(self, mode="rgb_array"):
         self.gym.step_graphics(self.sim)
         self.gym.render_all_camera_sensors(self.sim)
-        imgs = []
-        for i in range(self.num_envs):
+        imgs = {}
+        # DQ: 只对创建了渲染相机的 env 取图 (video_env_ids 或全部)
+        record_ids = list(self._rendering_camera_handles.keys())
+        for i in record_ids:
             cam = self._rendering_camera_handles[i]
             root_pos = self._robot_root_states[i, :3].cpu().numpy()
             cam_pos = root_pos + np.array([0, 2, 0.3]) # np.array([0, 2, 1])
@@ -198,7 +204,7 @@ class B2Z1Base(RewardVecTask):
             
             img = self.gym.get_camera_image(self.sim, self.envs[i], cam, gymapi.IMAGE_COLOR)
             w, h = img.shape
-            imgs.append(img.reshape([w, h // 4, 4]))
+            imgs[i] = img.reshape([w, h // 4, 4])
         return imgs
 
     def _extra_env_settings(self):
@@ -937,13 +943,13 @@ class B2Z1Base(RewardVecTask):
             camera_props = gymapi.CameraProperties()
             camera_props.width = 720
             camera_props.height = 480
-            self._rendering_camera_handles = []
-            for i in range(self.num_envs):
-                # root_pos = self.root_states[i, :3].cpu().numpy()
-                # cam_pos = root_pos + np.array([0, 1, 0.5])
+            self._rendering_camera_handles = {}
+            # DQ: 只对需要录制视频的 env 创建渲染相机 (默认空 = 全部)
+            record_ids = list(range(self.num_envs)) if not self.video_env_ids else self.video_env_ids
+            for i in record_ids:
                 cam_pos = np.array([0, 1, 0.5])
                 camera_handle = self.gym.create_camera_sensor(self.envs[i], camera_props)
-                self._rendering_camera_handles.append(camera_handle)
+                self._rendering_camera_handles[i] = camera_handle
                 self.gym.set_camera_location(camera_handle, self.envs[i], gymapi.Vec3(*cam_pos), gymapi.Vec3(*0*cam_pos))
 
     def _create_extra(self, env_i):
