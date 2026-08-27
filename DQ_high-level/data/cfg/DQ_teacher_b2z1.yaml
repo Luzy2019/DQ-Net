@@ -1,5 +1,5 @@
 env:
-  numEnvs: 3600 
+  numEnvs: 2400 
   numAgents: 1
   envSpacing: 3
   enableDebugVis: False
@@ -221,8 +221,8 @@ sim:
     rest_offset: 0.0
     bounce_threshold_velocity: 0.2
     max_depenetration_velocity: 50.0
-    default_buffer_size_multiplier: 100.0
-    max_gpu_contact_pairs: 1000000 #284032
+    default_buffer_size_multiplier: 5.0
+    max_gpu_contact_pairs: 284032 #284032
 
 reward:
   base_height_target: 0.48  # b2_z1 low-level base height target

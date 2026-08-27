@@ -645,7 +645,8 @@ class B2Z1PickMulti(B2Z1Base,PredictPoint):
         
         # Randomly change the object position in a small probability (like 0.1)
         obj_move_prob = torch_rand_float(0, 1, (self.num_envs, 1), device=self.device).squeeze()
-        changed_env_ids = torch.range(0, self.num_envs-1, dtype=int, device=self.device)[obj_move_prob < self.obj_move_prob] # This is a tensor with the length of env_nums
+        # changed_env_ids = torch.range(0, self.num_envs-1, dtype=int, device=self.device)[obj_move_prob < self.obj_move_prob] # This is a tensor with the length of env_nums
+        changed_env_ids = torch.arange(self.num_envs, device=self.device)[obj_move_prob < self.obj_move_prob]
         self.now_env_ids = changed_env_ids
         self._reset_objs(changed_env_ids)
 
