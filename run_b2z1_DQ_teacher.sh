@@ -23,9 +23,9 @@ export no_proxy="localhost,127.0.0.1,::1,.cn,aliyun.com,aliyuncs.com,baidu.com,t
 timesteps="${TIMESTEPS:-120000}"
 experiment_dir="${EXPERIMENT_DIR:-DQ_teacher/b2z1}"
 wandb_name="${WANDB_NAME:-${RUN_NAME:-b2z1-dqteacher_01}}"
-gpu="${GPU_ID:-3}"
-log_file="${LOG_FILE:-${repo_dir}/train_b2z1_teacher_new.log}"
-pid_file="${PID_FILE:-${repo_dir}/train_b2z1_teacher_new.pid}"
+gpu="${GPU_ID:-2}"
+log_file="${LOG_FILE:-${repo_dir}/train_b2z1_teacher_new_2.log}"
+pid_file="${PID_FILE:-${repo_dir}/train_b2z1_teacher_new_2.pid}"
 
 cd "${repo_dir}/DQ_high-level"
 

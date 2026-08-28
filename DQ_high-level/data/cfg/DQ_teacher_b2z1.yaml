@@ -1,5 +1,5 @@
 env:
-  numEnvs: 2400 
+  numEnvs: 4000
   numAgents: 1
   envSpacing: 3
   enableDebugVis: False
@@ -8,7 +8,7 @@ env:
   pdControl: True
   powerScale: 1.0
   controlFrequencyInv: 4
-  controlFrequencyLow: 6        # 8->6: 只降低层查询频率(提速,dt不变),仍满足imgDelayFrame(4)<=controlFrequencyLow(6)
+  controlFrequencyLow: 8
   imgDelayFrame: 4
   D1_bench_task_level : "Level04"
 
@@ -18,10 +18,15 @@ env:
   holdSteps: 25
   lastCommands: False
 
-  low_policy_path: "/root/rivermind-fs/DQ_WBC/DQ_high-level/data/low_model/b2z1/model_14500.pt" 
-  # model_14500.pt: visual_wholebody B2Z1ReachableWorkspaceCfgPPO
+  low_policy_path: "/home/lzy/DQ-Net/DQ_high-level/data/low_model/b2z1/model_14000.pt"
+  # model_14000.pt: visual_wholebody B2Z1ReachableWorkspaceCfgPPO
   low_policy_output_tanh: true
   low_policy_observe_gait_commands: true
+  # Match visual_wholebody B2-Z1 policy input normalization and action timing.
+  low_policy_ang_vel_scale: 0.25
+  low_policy_command_scale: [2.0, 2.0, 0.25]
+  low_policy_action_delay: false
+  gpu_memory_log_interval: 100
   taskddescription: "023"
 
   asset:
@@ -221,11 +226,11 @@ sim:
     rest_offset: 0.0
     bounce_threshold_velocity: 0.2
     max_depenetration_velocity: 50.0
-    default_buffer_size_multiplier: 5.0
-    max_gpu_contact_pairs: 284032 #284032
+    default_buffer_size_multiplier: 100.0
+    max_gpu_contact_pairs: 1000000
 
 reward:
-  base_height_target: 0.48  # b2_z1 low-level base height target
+  base_height_target: 0.55  # b2_z1 low-level base height target
   only_positive_rewards: False
   scales:
     approaching: 0.5
@@ -241,7 +246,7 @@ reward:
     base_approaching: 0.01
     grasp_base_height: 0.5
     gripper_rate: 0.0 
-    limit_yaw_rotation_penalty: 0.15    # 0.40->0.15: 减少大负奖励(-0.4/步)导致的value loss发散,保留yaw约束意图
+    limit_yaw_rotation_penalty: 0.40
 
 sensor:
   depth_clip_lower: 0.15

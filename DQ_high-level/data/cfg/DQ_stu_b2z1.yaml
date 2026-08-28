@@ -18,8 +18,8 @@ env:
   holdSteps: 25
   lastCommands: False
 
-  low_policy_path: "/root/rivermind-fs/DQ_WBC/DQ_high-level/data/low_model/b2z1/model_14500.pt" 
-  # model_14500.pt: visual_wholebody B2Z1ReachableWorkspaceCfgPPO
+  low_policy_path: "/home/lzy/DQ-Net/DQ_high-level/data/low_model/b2z1/model_14000.pt"
+  # model_14000.pt: visual_wholebody B2Z1ReachableWorkspaceCfgPPO
   low_policy_output_tanh: true
   low_policy_observe_gait_commands: true
   taskddescription: "023"
@@ -221,8 +221,8 @@ sim:
     rest_offset: 0.0
     bounce_threshold_velocity: 0.2
     max_depenetration_velocity: 50.0
-    default_buffer_size_multiplier: 100.0
-    max_gpu_contact_pairs: 1000000 #284032
+    default_buffer_size_multiplier: 5.0
+    max_gpu_contact_pairs: 284032
 
 reward:
   base_height_target: 0.48  # b2_z1 low-level base height target
